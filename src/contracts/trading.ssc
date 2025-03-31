@@ -1,0 +1,119 @@
+// Trading Smart Contract
+// This contract handles resource trading between players
+
+contract Trading {
+    // Trading state
+    struct TradeOffer {
+        address seller;
+        string sellResource;
+        uint256 sellAmount;
+        string buyResource;
+        uint256 buyAmount;
+        bool active;
+    }
+
+    // Storage
+    TradeOffer[] public offers;
+    mapping(address => uint256[]) public playerOffers;
+
+    // Events
+    event OfferCreated(address indexed seller, uint256 offerId);
+    event OfferAccepted(address indexed buyer, uint256 offerId);
+    event OfferCancelled(address indexed seller, uint256 offerId);
+
+    // Create a new trade offer
+    function createOffer(
+        string memory sellResource,
+        uint256 sellAmount,
+        string memory buyResource,
+        uint256 buyAmount
+    ) public {
+        require(sellAmount > 0 && buyAmount > 0, "Invalid amounts");
+        
+        TradeOffer memory newOffer = TradeOffer({
+            seller: msg.sender,
+            sellResource: sellResource,
+            sellAmount: sellAmount,
+            buyResource: buyResource,
+            buyAmount: buyAmount,
+            active: true
+        });
+
+        uint256 offerId = offers.length;
+        offers.push(newOffer);
+        playerOffers[msg.sender].push(offerId);
+
+        emit OfferCreated(msg.sender, offerId);
+    }
+
+    // Accept a trade offer
+    function acceptOffer(uint256 offerId) public {
+        require(offerId < offers.length, "Invalid offer ID");
+        require(offers[offerId].active, "Offer not active");
+        require(offers[offerId].seller != msg.sender, "Cannot accept your own offer");
+
+        TradeOffer storage offer = offers[offerId];
+        offer.active = false;
+
+        // Here you would implement the actual resource transfer
+        // This would involve calling the SpaceGame contract to transfer resources
+        
+        emit OfferAccepted(msg.sender, offerId);
+    }
+
+    // Cancel a trade offer
+    function cancelOffer(uint256 offerId) public {
+        require(offerId < offers.length, "Invalid offer ID");
+        require(offers[offerId].seller == msg.sender, "Not the offer creator");
+        require(offers[offerId].active, "Offer not active");
+
+        offers[offerId].active = false;
+        emit OfferCancelled(msg.sender, offerId);
+    }
+
+    // Get all active offers
+    function getActiveOffers() public view returns (uint256[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < offers.length; i++) {
+            if (offers[i].active) count++;
+        }
+
+        uint256[] memory activeOffers = new uint256[](count);
+        uint256 index = 0;
+        for (uint256 i = 0; i < offers.length; i++) {
+            if (offers[i].active) {
+                activeOffers[index] = i;
+                index++;
+            }
+        }
+
+        return activeOffers;
+    }
+
+    // Get offer details
+    function getOfferDetails(uint256 offerId) public view returns (
+        address seller,
+        string memory sellResource,
+        uint256 sellAmount,
+        string memory buyResource,
+        uint256 buyAmount,
+        bool active
+    ) {
+        require(offerId < offers.length, "Invalid offer ID");
+        
+        TradeOffer storage offer = offers[offerId];
+        return (
+            offer.seller,
+            offer.sellResource,
+            offer.sellAmount,
+            offer.buyResource,
+            offer.buyAmount,
+            offer.active
+        );
+    }
+
+    // Get player's offers
+    function getPlayerOffers(address player) public view returns (uint256[] memory) {
+        return playerOffers[player];
+    }
+} 

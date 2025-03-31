@@ -1,0 +1,102 @@
+// Star System Smart Contract
+// This contract manages star systems and their resources
+
+contract StarSystem {
+    // Star system state
+    struct Star {
+        string name;
+        string[] resources;
+        uint256 distance;
+        bool discovered;
+        mapping(string => uint256) resourceAmounts;
+    }
+
+    // Storage
+    mapping(string => Star) public stars;
+    string[] public starList;
+
+    // Events
+    event StarDiscovered(address indexed player, string starName);
+    event ResourceDepleted(string starName, string resourceName);
+    event ResourceReplenished(string starName, string resourceName, uint256 amount);
+
+    // Initialize star system
+    function initializeStarSystem() public {
+        // Create initial stars
+        createStar("Alpha Centauri", 0);
+        createStar("Proxima Centauri", 4);
+        createStar("Barnard's Star", 6);
+    }
+
+    // Create a new star
+    function createStar(string memory name, uint256 distance) internal {
+        require(bytes(stars[name].name).length == 0, "Star already exists");
+        
+        Star storage newStar = stars[name];
+        newStar.name = name;
+        newStar.distance = distance;
+        newStar.discovered = false;
+        
+        starList.push(name);
+    }
+
+    // Discover a star
+    function discoverStar(string memory starName) public {
+        require(bytes(stars[starName].name).length > 0, "Star does not exist");
+        require(!stars[starName].discovered, "Star already discovered");
+        
+        stars[starName].discovered = true;
+        emit StarDiscovered(msg.sender, starName);
+    }
+
+    // Add resources to a star
+    function addResource(string memory starName, string memory resourceName, uint256 amount) public {
+        require(bytes(stars[starName].name).length > 0, "Star does not exist");
+        
+        Star storage star = stars[starName];
+        star.resources.push(resourceName);
+        star.resourceAmounts[resourceName] = amount;
+    }
+
+    // Collect resources from a star
+    function collectResource(string memory starName, string memory resourceName, uint256 amount) public {
+        require(bytes(stars[starName].name).length > 0, "Star does not exist");
+        require(stars[starName].discovered, "Star not discovered");
+        require(stars[starName].resourceAmounts[resourceName] >= amount, "Not enough resources");
+        
+        stars[starName].resourceAmounts[resourceName] -= amount;
+        
+        if (stars[starName].resourceAmounts[resourceName] == 0) {
+            emit ResourceDepleted(starName, resourceName);
+        }
+    }
+
+    // Get star information
+    function getStarInfo(string memory starName) public view returns (
+        string memory name,
+        string[] memory resources,
+        uint256 distance,
+        bool discovered
+    ) {
+        require(bytes(stars[starName].name).length > 0, "Star does not exist");
+        
+        Star storage star = stars[starName];
+        return (
+            star.name,
+            star.resources,
+            star.distance,
+            star.discovered
+        );
+    }
+
+    // Get resource amount in a star
+    function getResourceAmount(string memory starName, string memory resourceName) public view returns (uint256) {
+        require(bytes(stars[starName].name).length > 0, "Star does not exist");
+        return stars[starName].resourceAmounts[resourceName];
+    }
+
+    // Get all stars
+    function getAllStars() public view returns (string[] memory) {
+        return starList;
+    }
+} 

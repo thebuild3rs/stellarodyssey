@@ -1,0 +1,92 @@
+// Space Game Smart Contract
+// This contract handles the core game mechanics
+
+contract SpaceGame {
+    // Game state
+    struct Player {
+        address owner;
+        Ship[] ships;
+        Resource[] resources;
+        bool initialized;
+    }
+
+    struct Ship {
+        string name;
+        string type;
+        Resource[] resources;
+        bool active;
+    }
+
+    struct Resource {
+        string name;
+        uint256 amount;
+        string issuer;
+    }
+
+    // Storage
+    mapping(address => Player) public players;
+    mapping(string => Resource) public gameResources;
+
+    // Events
+    event PlayerInitialized(address indexed player);
+    event ShipCreated(address indexed player, string shipName);
+    event ResourceCollected(address indexed player, string resourceName, uint256 amount);
+
+    // Initialize a new player
+    function initializePlayer() public {
+        require(!players[msg.sender].initialized, "Player already initialized");
+        
+        players[msg.sender] = Player({
+            owner: msg.sender,
+            ships: new Ship[](0),
+            resources: new Resource[](0),
+            initialized: true
+        });
+
+        emit PlayerInitialized(msg.sender);
+    }
+
+    // Create a new ship
+    function createShip(string memory name, string memory shipType) public {
+        require(players[msg.sender].initialized, "Player not initialized");
+        
+        Ship memory newShip = Ship({
+            name: name,
+            type: shipType,
+            resources: new Resource[](0),
+            active: true
+        });
+
+        players[msg.sender].ships.push(newShip);
+        emit ShipCreated(msg.sender, name);
+    }
+
+    // Collect resources from a star system
+    function collectResources(string memory resourceName, uint256 amount) public {
+        require(players[msg.sender].initialized, "Player not initialized");
+        require(gameResources[resourceName].amount >= amount, "Not enough resources");
+
+        Resource memory collectedResource = Resource({
+            name: resourceName,
+            amount: amount,
+            issuer: gameResources[resourceName].issuer
+        });
+
+        players[msg.sender].resources.push(collectedResource);
+        gameResources[resourceName].amount -= amount;
+
+        emit ResourceCollected(msg.sender, resourceName, amount);
+    }
+
+    // Get player's ships
+    function getPlayerShips() public view returns (Ship[] memory) {
+        require(players[msg.sender].initialized, "Player not initialized");
+        return players[msg.sender].ships;
+    }
+
+    // Get player's resources
+    function getPlayerResources() public view returns (Resource[] memory) {
+        require(players[msg.sender].initialized, "Player not initialized");
+        return players[msg.sender].resources;
+    }
+} 
